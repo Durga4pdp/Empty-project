@@ -137,19 +137,19 @@ data "aws_ssm_parameter" "ecs_node_ami" {
 resource "aws_launch_template" "ecs_ec2" {
   name_prefix            = "demo-ecs-ec2-"
   image_id               = data.aws_ssm_parameter.ecs_node_ami.value
-  instance_type          = "t3a.micro"
+  instance_type          = "t3a.medium"
 # key_name                 = "testpem"
 
   vpc_security_group_ids = [aws_security_group.ecs_node_sg.id]
 
   iam_instance_profile { arn = aws_iam_instance_profile.ecs_node.arn }
   monitoring { enabled = true }
-  
+
   # Example block device mapping
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size = 10
+      volume_size = 30
       volume_type = "gp3"
       delete_on_termination = true
     }
@@ -275,6 +275,7 @@ resource "aws_ecs_task_definition" "app" {
     name         = "app",
    # image        = "${aws_ecr_repository.app.repository_url}:latest",
     image        = "992382607847.dkr.ecr.ap-south-1.amazonaws.com/pfrda:v1",
+   # image        = "nginx:latest",
     essential    = true,
     portMappings = [{ containerPort = 3000, hostPort = 3000 }],
 
@@ -282,17 +283,8 @@ resource "aws_ecs_task_definition" "app" {
       { name = "EXAMPLE", value = "example" }
     ]
 
-    logConfiguration = {
-      logDriver = "awslogs",
-      options = {
-        "awslogs-region"        = "ap-south-1",
-        "awslogs-group"         = aws_cloudwatch_log_group.ecs.name,
-        "awslogs-stream-prefix" = "app"
-      }
-    },
   }])
 }
-
 
 # --- ECS Service ---
 
@@ -359,7 +351,7 @@ resource "aws_security_group" "http" {
   vpc_id      = aws_vpc.main.id
 
   dynamic "ingress" {
-    for_each = [80, 8080, 3000, 443]
+    for_each = [80,3000,443]
     content {
       protocol    = "tcp"
       from_port   = ingress.value
@@ -380,7 +372,7 @@ resource "aws_lb" "main" {
   name               = "demo-alb"
   load_balancer_type = "application"
   subnets            = aws_subnet.public[*].id
-  security_groups    = [aws_security_group.http.id]    
+  security_groups    = [aws_security_group.http.id]
 }
 
 resource "aws_lb_target_group" "app" {
@@ -477,24 +469,20 @@ resource "aws_appautoscaling_policy" "ecs_target_memory" {
 #Deployment options - RollingUpdate - min running tasks -100% - max runningtasks - 200%
 #Deployment Failure Detection - Use the Amazon ECS deployment circuit breaker - Rollback on failures
 
-#Networking 
+#Networking
 #vpc - subnets - security_groups
 
 #load_balancer
-#LB type - container_port - ALB - ALB name - listerner - aws_lb_target_group - 
+#LB type - container_port - ALB - ALB name - listerner - aws_lb_target_group -
 
 #service auto_scaling  for service
 #tasks min max - scaling policy(target/step) - policy name - ECS metrics like cpu ram - value - scale_out_cooldown - scale_in_cooldown
 
-#Task placement 
+#Task placement
 #Placement - AZ balanced spread
 
-#Volume 
+#Volume
 #picked from the task Definition
 
-#Tags 
+#Tags
 #Turn on Amazon ECS managed tags - Propagate tags from - service/task Definition
-
-
-
-
