@@ -18,6 +18,6 @@ resource "aws_s3_bucket" "example" {
   bucket = "my-tf-t0e0s7t-b1u2c3k4e5t67"
   tags = {
     Name        = "My bucket"
-    Environment = "Dev"
+    Environment = "Dev-test"
   }
 }
